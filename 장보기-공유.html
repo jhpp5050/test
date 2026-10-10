@@ -1,0 +1,443 @@
+<title>우리 집 장보기</title>
+<style>
+  /* 레이아웃: 한 열 모바일 우선 — 진행 머리글, 추가 칸, 카테고리 카드, 정리 버튼 */
+  :root {
+    --bg: #f1f9f3;
+    --card: #ffffff;
+    --text: #1f3a2b;
+    --muted: #6f8a7a;
+    --line: #dcefe2;
+    --field: #fbfefc;
+    --accent: #3fb672;
+    --accent-dark: #2e9a5c;
+    --accent-soft: #e2f6e9;
+    --mint: #7fd8b8;
+    --on-accent: #ffffff;
+    --danger: #d4574a;
+    --danger-soft: #fdeeee;
+    --del: #b8c9bf;
+    --shadow: 0 4px 14px rgba(46, 154, 92, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1a14; --card: #17261d; --text: #dcefe3; --muted: #8fab9a;
+      --line: #24382b; --field: #13211a; --accent: #4cc781; --accent-dark: #6fd89b;
+      --accent-soft: #1d3426; --mint: #3a9f7d; --on-accent: #0c1a12;
+      --danger: #ef8478; --danger-soft: #3a2220; --del: #5d7466;
+      --shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1a14; --card: #17261d; --text: #dcefe3; --muted: #8fab9a;
+    --line: #24382b; --field: #13211a; --accent: #4cc781; --accent-dark: #6fd89b;
+    --accent-soft: #1d3426; --mint: #3a9f7d; --on-accent: #0c1a12;
+    --danger: #ef8478; --danger-soft: #3a2220; --del: #5d7466;
+    --shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 16px; }
+
+  header {
+    background: linear-gradient(135deg, var(--accent), var(--mint));
+    color: var(--on-accent);
+    border-radius: 22px;
+    padding: 22px 22px 20px;
+    box-shadow: var(--shadow);
+  }
+  header h1 { margin: 0 0 4px; font-size: 1.6rem; text-wrap: balance; }
+  #progressText { margin: 0 0 10px; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+  .bar { height: 10px; background: rgba(255,255,255,0.35); border-radius: 99px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--on-accent); border-radius: 99px; transition: width .3s; }
+  .shared { margin: 10px 0 0; font-size: 0.8rem; opacity: 0.9; }
+
+  .notice {
+    background: var(--card); border-radius: 14px; padding: 12px 14px;
+    color: var(--muted); font-size: 0.9rem; box-shadow: var(--shadow);
+  }
+  .notice.error { color: var(--danger); }
+
+  form.add {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: 1fr 90px;
+    gap: 8px;
+  }
+  form.add input, form.add select {
+    font: inherit;
+    padding: 10px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    background: var(--field);
+    color: var(--text);
+    min-width: 0;
+  }
+  form.add input:focus-visible, form.add select:focus-visible { outline: none; border-color: var(--accent); }
+  form.add button {
+    font: inherit; font-weight: 700;
+    border: 0; border-radius: 12px;
+    background: var(--accent); color: var(--on-accent);
+    cursor: pointer;
+  }
+  form.add button:hover { background: var(--accent-dark); }
+  form.add button:disabled { opacity: 0.5; cursor: default; }
+
+  .empty {
+    text-align: center; color: var(--muted);
+    background: var(--card); border-radius: 18px; padding: 32px 16px;
+    box-shadow: var(--shadow);
+  }
+  .empty .big { font-size: 2.4rem; }
+
+  #list { display: flex; flex-direction: column; gap: 16px; }
+  .cat {
+    background: var(--card);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .cat h2 {
+    margin: 0; padding: 12px 16px;
+    font-size: 1.05rem;
+    background: var(--accent-soft);
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .cat h2 .left { font-size: 0.85rem; font-weight: 600; color: var(--accent-dark); white-space: nowrap; }
+  .cat ul { list-style: none; margin: 0; padding: 4px 0; }
+  .cat li {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px 10px 16px;
+    border-top: 1px solid var(--line);
+  }
+  .cat li:first-child { border-top: 0; }
+  .check {
+    flex: none;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--card); cursor: pointer;
+    display: grid; place-items: center;
+    color: var(--on-accent); font-size: 16px; font-weight: 700;
+    padding: 0;
+  }
+  .label { flex: 1; min-width: 0; cursor: pointer; word-break: break-all; }
+  .qty {
+    margin-left: 6px; font-size: 0.85rem; color: var(--accent-dark);
+    background: var(--accent-soft); padding: 1px 8px; border-radius: 99px;
+    white-space: nowrap;
+  }
+  .del {
+    flex: none; border: 0; background: none; cursor: pointer;
+    color: var(--del); font-size: 1.2rem; width: 32px; height: 32px; border-radius: 50%;
+  }
+  .del:hover { color: var(--danger); background: var(--danger-soft); }
+  button:focus-visible { outline: 2px solid var(--accent-dark); outline-offset: 2px; }
+
+  li.done .check { background: var(--accent); }
+  li.done .label { color: var(--muted); text-decoration: line-through; opacity: 0.7; }
+  li.done .qty { opacity: 0.6; }
+
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .actions button {
+    flex: 1; min-width: 140px;
+    font: inherit; font-weight: 600;
+    padding: 12px; border-radius: 14px; cursor: pointer;
+    border: 1.5px solid var(--accent); background: var(--card); color: var(--accent-dark);
+  }
+  .actions button:hover { background: var(--accent-soft); }
+  .actions button.warn { border-color: var(--danger); color: var(--danger); }
+  .actions button.warn:hover { background: var(--danger-soft); }
+  .actions button:disabled { opacity: 0.4; cursor: default; background: var(--card); }
+
+  .confirm {
+    background: var(--card); border: 1.5px solid var(--line);
+    border-radius: 16px; padding: 14px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .confirm p { margin: 0; }
+  .confirm .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .confirm button {
+    flex: 1; min-width: 120px; font: inherit; font-weight: 600; padding: 10px;
+    border-radius: 12px; cursor: pointer; border: 1.5px solid var(--line);
+    background: var(--field); color: var(--text);
+  }
+  .confirm button.yes { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .confirm button.yes.danger { background: var(--danger); border-color: var(--danger); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>🛒 우리 집 장보기</h1>
+    <p id="progressText">목록을 불러오는 중…</p>
+    <div class="bar"><div id="progressBar"></div></div>
+    <p class="shared">함께 쓰는 목록이에요. 누가 체크하면 모두의 화면에 바로 반영돼요.</p>
+  </header>
+
+  <div class="notice" id="notice" hidden></div>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <input id="nameInput" placeholder="품목 이름 (예: 계란)" required aria-label="품목 이름">
+    <input id="qtyInput" placeholder="수량" aria-label="수량">
+    <select id="catInput" aria-label="카테고리"></select>
+    <button type="submit" id="addBtn">추가</button>
+  </form>
+
+  <div id="list"></div>
+
+  <div class="confirm" id="confirmBox" hidden>
+    <p id="confirmText"></p>
+    <div class="row">
+      <button type="button" id="confirmNo">취소</button>
+      <button type="button" id="confirmYes" class="yes">확인</button>
+    </div>
+  </div>
+
+  <div class="actions" id="actions" hidden>
+    <button type="button" id="uncheckAll">🔄 체크 모두 해제</button>
+    <button type="button" id="clearDone" class="warn">🧹 산 것 지우기</button>
+  </div>
+</div>
+
+<script>
+  const CATEGORIES = [
+    { id: 'veg',    name: '🥬 채소·과일' },
+    { id: 'meat',   name: '🥩 고기·생선' },
+    { id: 'dairy',  name: '🥛 유제품·계란' },
+    { id: 'grain',  name: '🍞 곡물·면·빵' },
+    { id: 'sauce',  name: '🧂 양념·소스' },
+    { id: 'snack',  name: '🍪 간식·음료' },
+    { id: 'living', name: '🧻 생활용품' },
+    { id: 'etc',    name: '📦 기타' },
+  ];
+  const LASTCAT = 'groceries-lastcat';
+  const $ = (id) => document.getElementById(id);
+
+  let db = null;
+  let col = null;
+  let items = [];        // {id, name, qty, cat, done, createdAt}
+  let loaded = false;
+  let canWrite = true;
+  let pendingConfirm = null;
+
+  const catInput = $('catInput');
+  CATEGORIES.forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = c.name;
+    catInput.appendChild(o);
+  });
+  try { catInput.value = localStorage.getItem(LASTCAT) || 'veg'; } catch (e) {}
+  if (!catInput.value) catInput.value = 'veg';
+
+  function notice(msg, isError) {
+    const n = $('notice');
+    n.textContent = msg || '';
+    n.className = 'notice' + (isError ? ' error' : '');
+    n.hidden = !msg;
+  }
+
+  function writeError(e) {
+    if (e && e.code === 'invalid_argument') {
+      canWrite = false;
+      notice('이 목록은 보기만 할 수 있어요. 바꾸려면 목록 주인에게 편집 권한을 받아 주세요.', true);
+      applyWriteState();
+    } else if (e && e.code === 'quota_exceeded') {
+      notice('목록이 너무 많아 더 추가할 수 없어요. 산 것을 지운 뒤 다시 추가해 주세요.', true);
+    } else {
+      notice('저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.', true);
+    }
+  }
+
+  function applyWriteState() {
+    $('addForm').hidden = !canWrite;
+    render();
+  }
+
+  function render() {
+    const list = $('list');
+    list.innerHTML = '';
+
+    const total = items.length;
+    const done = items.filter(i => i.done).length;
+    if (!loaded) {
+      $('progressText').textContent = '목록을 불러오는 중…';
+    } else {
+      $('progressText').textContent = total
+        ? (done === total ? `${total}개 모두 담았어요! 🎉` : `${total}개 중 ${done}개 담음`)
+        : '아직 품목이 없어요';
+    }
+    $('progressBar').style.width = total ? (done / total * 100) + '%' : '0';
+
+    $('uncheckAll').disabled = done === 0;
+    $('clearDone').disabled = done === 0;
+    $('actions').hidden = !total || !canWrite;
+
+    if (!total) {
+      const div = document.createElement('div');
+      div.className = 'empty';
+      div.innerHTML = '<div class="big">🥕</div>';
+      div.append(loaded
+        ? (canWrite ? '첫 품목을 추가해 보세요. 함께 보는 사람 화면에도 바로 나타나요.' : '아직 목록에 품목이 없어요.')
+        : '목록을 불러오고 있어요.');
+      list.appendChild(div);
+      return;
+    }
+
+    CATEGORIES.forEach(cat => {
+      const inCat = items.filter(i => (CATEGORIES.some(c => c.id === i.cat) ? i.cat : 'etc') === cat.id);
+      if (!inCat.length) return;
+      const sorted = [...inCat.filter(i => !i.done), ...inCat.filter(i => i.done)];
+      const left = inCat.filter(i => !i.done).length;
+
+      const sec = document.createElement('section');
+      sec.className = 'cat';
+      const h = document.createElement('h2');
+      const t = document.createElement('span'); t.textContent = cat.name;
+      const l = document.createElement('span'); l.className = 'left';
+      l.textContent = left ? `${left}개 남음` : '다 담았어요 ✓';
+      h.append(t, l);
+      sec.appendChild(h);
+
+      const ul = document.createElement('ul');
+      sorted.forEach(item => {
+        const li = document.createElement('li');
+        if (item.done) li.className = 'done';
+
+        const chk = document.createElement('button');
+        chk.type = 'button';
+        chk.className = 'check';
+        chk.textContent = item.done ? '✓' : '';
+        chk.setAttribute('aria-label', (item.done ? '체크 해제: ' : '체크: ') + item.name);
+        chk.disabled = !canWrite;
+        chk.onclick = () => toggle(item);
+
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.textContent = item.name;
+        if (item.qty) {
+          const q = document.createElement('span');
+          q.className = 'qty';
+          q.textContent = item.qty;
+          label.appendChild(q);
+        }
+        if (canWrite) label.onclick = () => toggle(item);
+
+        li.append(chk, label);
+        if (canWrite) {
+          const del = document.createElement('button');
+          del.type = 'button';
+          del.className = 'del';
+          del.textContent = '×';
+          del.title = '삭제';
+          del.setAttribute('aria-label', item.name + ' 삭제');
+          del.onclick = () => col.doc(item.id).delete().catch(writeError);
+          li.appendChild(del);
+        }
+        ul.appendChild(li);
+      });
+      sec.appendChild(ul);
+      list.appendChild(sec);
+    });
+  }
+
+  function toggle(item) {
+    if (!col || !canWrite) return;
+    col.doc(item.id).update({ done: !item.done }).catch(writeError);
+  }
+
+  $('addForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!col) return;
+    const name = $('nameInput').value.trim();
+    if (!name) return;
+    const data = {
+      name: name.slice(0, 100),
+      qty: $('qtyInput').value.trim().slice(0, 30),
+      cat: catInput.value,
+      done: false,
+      createdAt: Date.now(),
+    };
+    try { localStorage.setItem(LASTCAT, catInput.value); } catch (err) {}
+    $('nameInput').value = ''; $('qtyInput').value = '';
+    $('nameInput').focus();
+    try { await col.add(data); notice(''); } catch (err) { writeError(err); }
+  });
+
+  function askConfirm(text, danger, action) {
+    pendingConfirm = action;
+    $('confirmText').textContent = text;
+    $('confirmYes').className = 'yes' + (danger ? ' danger' : '');
+    $('confirmBox').hidden = false;
+    $('actions').hidden = true;
+    $('confirmYes').focus();
+  }
+  function closeConfirm() {
+    pendingConfirm = null;
+    $('confirmBox').hidden = true;
+    render();
+  }
+  $('confirmNo').onclick = closeConfirm;
+  $('confirmYes').onclick = async () => {
+    const action = pendingConfirm;
+    closeConfirm();
+    if (action) await action();
+  };
+
+  async function eachSequential(list, fn) {
+    for (const it of list) {
+      try { await fn(it); } catch (e) { writeError(e); return; }
+    }
+  }
+
+  $('uncheckAll').onclick = () => {
+    askConfirm('체크를 모두 해제할까요? 항목은 그대로 남아요.', false,
+      () => eachSequential(items.filter(i => i.done), it => col.doc(it.id).update({ done: false })));
+  };
+  $('clearDone').onclick = () => {
+    const n = items.filter(i => i.done).length;
+    askConfirm(`체크한 ${n}개 항목을 목록에서 지울까요? 모두의 목록에서 사라져요.`, true,
+      () => eachSequential(items.filter(i => i.done), it => col.doc(it.id).delete()));
+  };
+
+  render();
+
+  (async () => {
+    db = await (window.claude?.use?.('db') ?? Promise.resolve(null));
+    if (!db) {
+      loaded = true;
+      canWrite = false;
+      $('addForm').hidden = true;
+      notice('함께 쓰는 목록을 불러올 수 없어요. claude.ai에 로그인한 상태로 이 링크를 열어 주세요.', true);
+      render();
+      return;
+    }
+    col = db.collection('items');
+
+    try {
+      const user = await window.claude.use('user');
+      const can = user ? await user.can('data.write') : null;
+      if (can === false) { canWrite = false; $('addForm').hidden = true; }
+    } catch (e) {}
+
+    col.orderBy('createdAt').onSnapshot(snap => {
+      items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      loaded = true;
+      if (pendingConfirm) return;
+      render();
+    }, err => {
+      loaded = true;
+      notice('목록 연결이 끊겼어요. 페이지를 새로고침해 주세요.', true);
+      render();
+    });
+  })();
+</script>
