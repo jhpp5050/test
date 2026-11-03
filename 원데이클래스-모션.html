@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11월 원데이 클래스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&text=11%EC%9B%94%EC%9B%90%EB%8D%B0%EC%9D%B4%ED%81%B4%EB%9E%98%EC%8A%A4%EC%A7%80%EA%B8%88%EC%8B%A0%EC%B2%AD%ED%95%98%EC%84%B8%EC%9A%94&display=block" rel="stylesheet">
+<style>
+  :root { --bg: #1d1b24; --ink: #f3efe6; --btn: #ff6b4a; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Apple SD Gothic Neo", sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 16px;
+  }
+  canvas {
+    height: min(80vh, 160vw); aspect-ratio: 9 / 16; width: auto; max-width: 100%;
+    border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  }
+  .bar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  button {
+    font: inherit; font-weight: 700; border: 0; border-radius: 999px;
+    padding: 10px 18px; cursor: pointer; background: #3a3644; color: var(--ink);
+  }
+  button.main { background: var(--btn); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  #msg { font-size: 13px; opacity: .7; min-height: 1em; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<div class="bar">
+  <button id="replay">다시 재생</button>
+  <button id="rec" class="main">영상으로 저장 (5초)</button>
+</div>
+<div id="msg"></div>
+
+<script>
+const W = 1080, H = 1920, DUR = 5;
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+
+const PALETTE = ['#ff6b4a', '#ffc93c', '#4ecdc4', '#7b6cff', '#ff8fb1'];
+const BG = '#fff6e9';
+const INK = '#2b2233';
+
+// 줄 구성: "11월" / "원데이" / "클래스"
+const lines = [
+  { text: '11월',  size: 340, y: 700 },
+  { text: '원데이', size: 270, y: 1040 },
+  { text: '클래스', size: 270, y: 1340 },
+];
+
+const FONT = '"Bagel Fat One", "Apple SD Gothic Neo", sans-serif';
+let chars = [];
+
+function layout() {
+  chars = [];
+  let i = 0;
+  for (const ln of lines) {
+    ctx.font = `${ln.size}px ${FONT}`;
+    const glyphs = [...ln.text];
+    const widths = glyphs.map(g => ctx.measureText(g).width);
+    const gap = ln.size * 0.02;
+    const total = widths.reduce((a, b) => a + b, 0) + gap * (glyphs.length - 1);
+    let x = (W - total) / 2;
+    glyphs.forEach((g, k) => {
+      chars.push({
+        g, size: ln.size, cx: x + widths[k] / 2, cy: ln.y,
+        start: 0.35 + i * 0.2,               // 한 글자씩 0.2초 간격
+        color: PALETTE[i % PALETTE.length],
+        tilt: (i % 2 ? 1 : -1) * (0.06 + (i % 3) * 0.02),
+        idx: i,
+      });
+      x += widths[k] + gap;
+      i++;
+    });
+  }
+}
+
+// 튀어나오는 탄성 곡선
+function backOut(p) { const s = 2.4; p -= 1; return p * p * ((s + 1) * p + s) + 1; }
+function elastic(p) {
+  if (p <= 0) return 0; if (p >= 1) return 1;
+  return Math.pow(2, -9 * p) * Math.sin((p * 10 - 0.75) * (2 * Math.PI / 3)) + 1;
+}
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+
+// 고정된 난수(매 프레임 같은 결과)
+function rand(n) { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
+
+function drawBackground(t) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // 천천히 도는 큰 원 두 개
+  const a = t * 0.5;
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = '#ffc93c';
+  ctx.beginPath(); ctx.arc(W * 0.85 + Math.cos(a) * 40, 260 + Math.sin(a) * 40, 300, 0, 7); ctx.fill();
+  ctx.fillStyle = '#4ecdc4';
+  ctx.beginPath(); ctx.arc(W * 0.1 + Math.sin(a) * 40, H - 300 + Math.cos(a) * 40, 360, 0, 7); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawBurst(c, t) {
+  // 글자가 튀어나올 때 사방으로 퍼지는 점들
+  const p = (t - c.start) / 0.7;
+  if (p <= 0 || p >= 1) return;
+  const e = 1 - Math.pow(1 - p, 3);
+  for (let k = 0; k < 7; k++) {
+    const ang = (k / 7) * Math.PI * 2 + rand(c.idx * 10 + k) * 0.6;
+    const dist = c.size * (0.45 + e * 0.55);
+    const r = 14 * (1 - p) + 2;
+    ctx.fillStyle = PALETTE[(c.idx + k) % PALETTE.length];
+    ctx.beginPath();
+    ctx.arc(c.cx + Math.cos(ang) * dist, c.cy - c.size * 0.35 + Math.sin(ang) * dist, r, 0, 7);
+    ctx.fill();
+  }
+}
+
+function drawChar(c, t) {
+  const p = clamp((t - c.start) / 0.55);
+  if (p <= 0) return;
+
+  let sc = backOut(p);
+  let rot = c.tilt * (1 - elastic(p));
+  let dy = (1 - backOut(p)) * 160;
+
+  // 다 나온 뒤엔 살짝 둥실둥실
+  const settled = t - c.start - 0.55;
+  if (settled > 0) dy += Math.sin(settled * 3 + c.idx * 0.7) * 10;
+
+  // 끝부분: 한꺼번에 '꿀렁'
+  const end = clamp((t - 4.3) / 0.4);
+  if (end > 0) sc *= 1 + Math.sin(end * Math.PI) * 0.08 * Math.sin(c.idx + 1.3);
+
+  ctx.save();
+  ctx.translate(c.cx, c.cy - c.size * 0.35 + dy);
+  ctx.rotate(rot);
+  ctx.scale(sc, sc);
+  ctx.font = `${c.size}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // 그림자처럼 밀린 컬러 레이어
+  ctx.fillStyle = c.color;
+  ctx.fillText(c.g, 12, 14);
+  ctx.fillStyle = INK;
+  ctx.fillText(c.g, 0, 0);
+  ctx.restore();
+}
+
+function drawTag(t) {
+  // 마지막에 아래쪽 작은 띠
+  const p = clamp((t - 2.6) / 0.5);
+  if (p <= 0) return;
+  const s = backOut(p);
+  ctx.save();
+  ctx.translate(W / 2, 1620);
+  ctx.scale(s, s);
+  ctx.fillStyle = INK;
+  const w = 520, h = 110;
+  ctx.beginPath(); ctx.roundRect(-w / 2, -h / 2, w, h, h / 2); ctx.fill();
+  ctx.fillStyle = BG;
+  ctx.font = `60px ${FONT}`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('지금 신청하세요', 0, 4);
+  ctx.restore();
+}
+
+function render(t) {
+  drawBackground(t);
+  for (const c of chars) drawBurst(c, t);
+  for (const c of chars) drawChar(c, t);
+  drawTag(t);
+
+  // 마지막 0.25초 페이드 → 반복 재생 시 자연스럽게
+  const out = clamp((t - (DUR - 0.25)) / 0.25);
+  if (out > 0) { ctx.fillStyle = `rgba(255,246,233,${out})`; ctx.fillRect(0, 0, W, H); }
+}
+
+let t0 = performance.now();
+let loop = true;
+function frame(now) {
+  let t = (now - t0) / 1000;
+  if (t >= DUR) { if (loop) { t0 = now; t = 0; } else t = DUR; }
+  render(t);
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('replay').onclick = () => { t0 = performance.now(); };
+
+const msg = document.getElementById('msg');
+document.getElementById('rec').onclick = async (ev) => {
+  const btn = ev.currentTarget;
+  if (!window.MediaRecorder) { msg.textContent = '이 브라우저는 녹화를 지원하지 않아요. 크롬에서 열어 주세요.'; return; }
+  const types = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+  const type = types.find(x => MediaRecorder.isTypeSupported(x));
+  const stream = cv.captureStream(30);
+  const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 12_000_000 });
+  const parts = [];
+  rec.ondataavailable = e => e.data.size && parts.push(e.data);
+  rec.onstop = () => {
+    const ext = type.includes('mp4') ? 'mp4' : 'webm';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(parts, { type }));
+    a.download = `11월-원데이클래스.${ext}`;
+    a.click();
+    btn.disabled = false; loop = true;
+    msg.textContent = `저장했어요 (${ext}).`;
+  };
+  btn.disabled = true; loop = false;
+  msg.textContent = '녹화 중… 5초만 기다려 주세요';
+  t0 = performance.now();
+  rec.start();
+  setTimeout(() => rec.stop(), DUR * 1000 + 100);
+};
+
+document.fonts.load(`100px "Bagel Fat One"`, '11월원데이클래스지금신청하세요').finally(() => {
+  layout();
+  t0 = performance.now();
+  requestAnimationFrame(frame);
+});
+</script>
+</body>
+</html>
