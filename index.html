@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #ffffff;
+        --ink: #000000;
+        --circle-size: 240px;
+        --margin: 60px;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: var(--ground);
+      }
+      #stage {
+        position: absolute;
+        inset: 0;
+      }
+      #circle {
+        position: absolute;
+        top: calc(50% - var(--circle-size) / 2);
+        left: var(--margin);
+        width: var(--circle-size);
+        height: var(--circle-size);
+        border-radius: 50%;
+        background: var(--ink);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="3"
+      data-width="1080"
+      data-height="1920"
+    >
+      <div id="stage" class="clip" data-start="0" data-duration="3" data-track-index="0">
+        <div id="circle"></div>
+      </div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      // 왼쪽 여백에서 오른쪽 여백까지 3초 동안 이동 (1080 - 240 - 60 * 2 = 720px)
+      tl.fromTo("#circle", { x: 0 }, { x: 720, duration: 3, ease: "power1.inOut" }, 0);
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

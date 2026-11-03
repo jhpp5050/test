@@ -1,2 +1,8 @@
 # Mac이 자동으로 만드는 폴더 정보 파일
 .DS_Store
+
+# npm으로 설치한 프로그램 (package-lock.json으로 다시 받을 수 있음)
+node_modules/
+
+# HyperFrames 작업용 임시 기록 (검사 결과, 미리보기 이미지)
+.hyperframes/
